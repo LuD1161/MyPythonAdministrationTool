@@ -1,5 +1,6 @@
 import BaseHTTPServer
-import os, cgi
+import cgi
+
 
 HOST_NAME = "172.26.44.222"
 PORT_NUMBER = 80
