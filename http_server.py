@@ -1,7 +1,7 @@
 import BaseHTTPServer
 
 HOST_NAME = "172.26.44.222"
-PORT_NUMBER = 8080
+PORT_NUMBER = 80
 
 
 class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
@@ -22,7 +22,7 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 if __name__ == '__main__':
     server_class = BaseHTTPServer.HTTPServer
-    httpd = server_class((HOST_NAME,PORT_NUMBER),MyHandler)
+    httpd = server_class((HOST_NAME, PORT_NUMBER), MyHandler)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

