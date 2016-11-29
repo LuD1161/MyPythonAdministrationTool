@@ -1,7 +1,7 @@
 import getpass
+import os
 import socket
 import subprocess
-import os
 
 
 def transfer(s, path):
