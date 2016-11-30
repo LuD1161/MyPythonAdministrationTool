@@ -1,7 +1,6 @@
 <?php
 $target_dir = "uploads/";
-$array = explode("-",$_FILES["fileToUpload"]["name"]);
-$botDirectory = $array[0];
+$botDirectory = $_POST['botname'];
 $target_file = $target_dir . $botDirectory. "/" .basename($_FILES["fileToUpload"]["name"]);
 $uploadOk = 1;
 $FileType = pathinfo($target_file,PATHINFO_EXTENSION);
