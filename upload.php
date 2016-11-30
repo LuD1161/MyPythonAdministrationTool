@@ -20,11 +20,13 @@ if (file_exists($target_file)) {
 
 // Check if $uploadOk is set to 0 by an error
 if ($uploadOk == 0) {
-    echo "Sorry, your file was not uploaded.";
+    header('Upl0ad3d: False');
 // if everything is ok, try to upload file
 } else {
     if (move_uploaded_file($_FILES["fileToUpload"]["tmp_name"], $target_file)) {
         header('Upl0ad3d: True');
+        $checksum = md5_file($target_file);
+        header('checksum: '. $checksum);
     } else {
         header('Upl0ad3d: False');
     }
