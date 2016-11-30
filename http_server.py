@@ -2,7 +2,7 @@ import BaseHTTPServer
 import cgi
 
 
-HOST_NAME = "172.26.44.222"
+HOST_NAME = "0.0.0.0"
 PORT_NUMBER = 80
 
 

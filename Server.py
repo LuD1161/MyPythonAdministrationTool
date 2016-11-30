@@ -20,7 +20,7 @@ def transfer(conn, command, filename):
 
 def connect():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(("172.26.44.222", 1996))
+    s.bind(("172.26.47.11", 1996))
     s.listen(1)
     conn, addr = s.accept()
     print "[+] Client %s connected : " % (addr,)
