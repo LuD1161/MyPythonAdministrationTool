@@ -6,7 +6,7 @@ if ($_GET['g']=='data'){
 		echo (fread($myFile, filesize("comm.txt")));
     	fclose($myFile);
 	}
-	else echo "Empty"
+	else echo "Empty";
 }
 else{
 	$myFile = fopen("comm.txt","w");
