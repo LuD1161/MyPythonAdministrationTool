@@ -26,6 +26,7 @@ Learning Python Interaction With Windows
 </ul>
 </li>
   <li><strong>Steal passwords from Google Chrome</strong></li>
+  <li><strong>Automatic spreading by copying to USB and creating shortcuts of pre-existing files </strong></li>
  	<li><strong>Sends MD5</strong> hash of the file , before uploading the original file so as to check for any bad upload</li>
  	<li><strong>Retries</strong> until the file is uploaded ( which is checked using the checksum sent earlier )</li>
  	<li><strong>Screenshots : </strong>Takes screenshots based on the URL of the webpage ( this needs to be polished )</li>
@@ -33,6 +34,14 @@ Learning Python Interaction With Windows
  	<li><strong>CMD</strong> commands can be executed by the bot</li>
 </ul>
 <p>The main file is the <strong>'Client.py' </strong>, which needs to be compiled and run on the user's machine , it has been <strong>tested on my PC</strong> and works out to be fine.</p>
+
+### How spreading works
+<p>
+First the malware copies itself to the USB.<br>
+Then it creates shortcut of each file linking it to the malware's executable.<br>
+The shortcut's opening link contains the path to the malware with an extra parameter as the original file.<br>
+When the malware executable is run then , first it executes the malware and then restores all the files , in turn opening the file clicked. Thus not making the user suspicious ;) . 
+</p>
 
 <header>
 <h1 class="title">Disclaimer</h1>
